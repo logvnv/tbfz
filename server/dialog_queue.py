@@ -70,7 +70,16 @@ class Queue():
 
             for update in updates:
                 user_id = update.message.from_user.id
-                msg_text = update.message.text.strip().lower()
+                msg_text = ''
+                try:
+                    msg_text = update.message.text.strip().lower()
+                except AttributeError:
+                    self.bot.send_message(user_id, 'Обыденное общение не \
+предусмотренно.\nПопробуйте воспользоваться командой \
+/help, чтобы узнать доступные вам команды.',
+                                          reply_markup=json.dumps({
+                                              'keyboard': [['/help']],
+                                              'resize_keyboard': True}))
 
                 if msg_text.startswith('/'):
                     self.__comand_handler(user_id, msg_text[1:])
