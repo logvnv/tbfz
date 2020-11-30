@@ -30,4 +30,4 @@ class Supervisor():
 подключиться к серверу.")
             except IndexError:
                 print("Неопознаный символ. Введите 'q' для завершения или \
-номера от 1 до {}.".format(len(self.sensors)))
+номера от 0 до {}.".format(len(self.sensors) - 1))
