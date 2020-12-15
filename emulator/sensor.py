@@ -3,6 +3,7 @@
 import itertools
 import socket
 
+import server_config
 
 class Sensor():
     """Симуляция одноко станка, с возможностью
@@ -15,7 +16,7 @@ class Sensor():
         self.is_running = True
 
         sock = socket.socket()
-        sock.connect(('localhost', 9090))
+        sock.connect((server_config.SERV_HOST, server_config.SERV_PORT))
         sock.send(('a' + str(self.id)).encode())
         _ = sock.recv(1024)
         sock.close()
@@ -24,7 +25,7 @@ class Sensor():
         """Переключение состояния вкл/выкл"""
 
         sock = socket.socket()
-        sock.connect(('localhost', 9090))
+        sock.connect((server_config.SERV_HOST, server_config.SERV_PORT))
 
         if self.is_running is True:
             self.is_running = False

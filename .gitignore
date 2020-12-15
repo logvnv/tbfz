@@ -1,4 +1,4 @@
-server/config.py
+server/bot_config.py
 .DS_Store
 *.pyc
 *__pycache__

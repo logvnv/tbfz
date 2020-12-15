@@ -1,0 +1,3 @@
+SERV_HOST = "localhost"
+SERV_PORT = 9090
+N_CONNECTIONS = 10
