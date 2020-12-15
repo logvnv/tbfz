@@ -63,7 +63,7 @@ class Queue():
         self.server.bind((ip, port))
         self.server.listen(n)
 
-    def add_dialog(self, machine_id, sboi_id):
+    def add_dialog(self, machine_id, machine_name, sboi_id):
         """ Создать новые диалоги по новому случаю сбоя """
         # Вычислить людей ответственных за данных станок через бд
         # user_ids = [1266388430, ]
@@ -78,7 +78,7 @@ class Queue():
         user_ids = set(user_ids)
 
         for user_id in user_ids:
-            dialog = Dialog(self.bot, user_id, machine_id, sboi_id)
+            dialog = Dialog(self.bot, user_id, machine_id, machine_name, sboi_id)
             if user_id not in [d.user_id for d in self.dialogs]:
                 dialog.start()
             self.dialogs.append(dialog)
@@ -97,7 +97,7 @@ class Queue():
                 user_id = str(update.message.from_user.id)
                 msg_text = ''
                 try:
-                    msg_text = update.message.text.strip().lower()
+                    msg_text = update.message.text.strip()
                 except AttributeError:
                     self.bot.send_message(user_id, 'Обыденное общение не \
 предусмотренно.\nПопробуйте воспользоваться командой \
@@ -111,7 +111,7 @@ class Queue():
                     continue
 
                 if not self.__conversation(user_id, msg_text):
-                    print(msg_text)
+                    #print(msg_text)
                     self.bot.send_message(user_id, 'Обыденное общение не \
 предусмотренно.\nПопробуйте воспользоваться командой \
 /help, чтобы узнать доступные вам команды.',
@@ -135,6 +135,15 @@ class Queue():
             data = clientsock.recv(1024).decode()
             machine_id = data[1:]
             state = data[0]
+            machine_name = None
+            
+            connection = pymysql.connect(db_config.DB_HOST, db_config.DB_USER_NAME, db_config.DB_PASSWORD, db_config.DB_NAME)
+            with connection.cursor() as cursor:
+                sql = "SELECT machine_name FROM machine WHERE `machine_id` = (%s);"
+                cursor.execute(sql, (machine_id,))
+                machine_name = cursor.fetchone()[0]
+            connection.close()
+
             if state == 'i':
                 print("Полученно сообщение о сбое на машине №{}.".format(
                     machine_id))
@@ -142,6 +151,7 @@ class Queue():
                 # id сбоя в базе данных
                 sboi_id = None
                 cur_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                
 
                 connection = pymysql.connect(db_config.DB_HOST, db_config.DB_USER_NAME, db_config.DB_PASSWORD, db_config.DB_NAME)
                 with connection.cursor() as cursor:
@@ -154,12 +164,12 @@ class Queue():
                     sboi_id = cursor.fetchone()[0]
                 connection.close()
                   
-                self.add_dialog(machine_id, sboi_id)
-                self.states[machine_id] = False
+                self.add_dialog(machine_id, machine_name, sboi_id)
+                self.states[machine_name] = False
             elif state == 'a':
                 print("Полученно сообщение о запуске машины №{}.".format(
                     machine_id))
-                self.states[machine_id] = True
+                self.states[machine_name] = True
 
             clientsock.send(bytes("ok", 'UTF-8'))
         except socket.timeout:
@@ -188,37 +198,43 @@ class Queue():
             worker_id = cursor.fetchone()[0]
         connection.close()
 
-        if msg_text == 'start':
+        if msg_text.lower() == 'start':
             self.bot.send_message(user_id, GREETINGS_TEXT,
                                   reply_markup=json.dumps({
                                       'keyboard': [['/state']],
                                       'resize_keyboard': True}))
-        elif msg_text == 'help':
+        elif msg_text.lower() == 'help':
             self.bot.send_message(user_id, HELP_TEXT,
                                   reply_markup=json.dumps({
                                       'keyboard': [['/state']],
                                       'resize_keyboard': True}))
-        elif msg_text == 'state':
+        elif msg_text.lower() == 'state':
             # Вычислить номера станков, связанных с вопрошающим
             #n_sensors = ['1', '3', '7', '100']
-            n_sensors = []
+            sensor_names = []
             connection = pymysql.connect(db_config.DB_HOST, db_config.DB_USER_NAME, db_config.DB_PASSWORD, db_config.DB_NAME)
             with connection.cursor() as cursor:
-                sql = "SELECT machine_id FROM worktime LEFT JOIN worker USING(worker_id) WHERE telegram_id = (%s)"
+                sql = "SELECT machine_name FROM worktime LEFT JOIN worker USING(worker_id) LEFT JOIN machine USING(machine_id) WHERE telegram_id = (%s)"
                 cursor.execute(sql, (user_id,))
                 for row in cursor.fetchall():
-                    n_sensors.append(row[0])
+                    sensor_names.append(row[0])
             connection.close()
 
             states = {}
-            for i in n_sensors:
-                states[i] = (self.states[i] if i in self.states.keys()
+            for name in sensor_names:
+                states[name] = (self.states[name] if name in self.states.keys()
                              else False)
-            self.bot.send_message(user_id, str(states)[1:-1].replace(
-                ', ', '\n').replace(
-                    'True', 'Работает').replace(
-                        'False', 'Простаивает'))
-        elif msg_text.startswith('sub') and msg_text.split()[0] == 'sub':
+
+            if len(states) > 0:
+                self.bot.send_message(user_id, str(states)[1:-1].replace(
+                    ', ', '\n').replace(
+                        'True', 'Работает').replace(
+                            'False', 'Простаивает'))
+            else:
+                self.bot.send_message(user_id, "За вами не закреплено никакого оборудования.\n\
+Вы можете воспользоваться командой /sub 1 2 3, чтобы подписаться на оборудование 1, 2 и 3.")
+
+        elif msg_text.lower().startswith('sub') and msg_text.lower().split()[0] == 'sub':
             sensors = msg_text.split()[1:]
             good_sensors = []
             if len(sensors) > 0:
@@ -248,8 +264,8 @@ class Queue():
                 self.bot.send_message(user_id, 'Команда использована неверно.\
  \nИспользуйте /sub n1 n2 ..., где ni - номер станка на который вы хотите\
  подписаться.')
-        elif msg_text.startswith('unsub') and msg_text.split()[0] == 'unsub':
-            if msg_text.split()[0] != 'unsub':
+        elif msg_text.lower().startswith('unsub') and msg_text.lower().split()[0] == 'unsub':
+            if msg_text.lower().split()[0] != 'unsub':
                 return
             sensors = msg_text.split(' ')[1:]
             good_sensors = []
@@ -303,13 +319,13 @@ class Queue():
             if dialog.user_id == user_id:
                 answered = True
                 if dialog.state == 1:
-                    if msg_text == 'нет':
+                    if msg_text.lower() == 'нет':
                         self.bot.send_message(user_id, 'На нет и суда нет.',
                                               reply_markup=json.dumps({
                                                   'keyboard': [['/state']],
                                                   'resize_keyboard': True}))
                         del self.dialogs[i]
-                    elif msg_text == 'да':
+                    elif msg_text.lower() == 'да':
                         dialog.ask(self.reasons.keys())
                     else:
                         self.bot.send_message(user_id,
@@ -320,11 +336,11 @@ class Queue():
                                                   'resize_keyboard': True,
                                                   'one_time_keyboard': True}))
                 elif dialog.state == 2:
-                    if msg_text in [r.lower() for r in self.reasons]:
+                    if msg_text.lower() in [r.lower() for r in self.reasons]:
 
                         connection = pymysql.connect(db_config.DB_HOST, db_config.DB_USER_NAME, db_config.DB_PASSWORD, db_config.DB_NAME)
                         with connection.cursor() as cursor:
-                            reason_id = self.reasons[list(self.reasons.keys())[[r.lower() for r in self.reasons].index(msg_text)]]
+                            reason_id = self.reasons[list(self.reasons.keys())[[r.lower() for r in self.reasons].index(msg_text.lower())]]
                             sql = "UPDATE failure SET worker_id = (%s), failure_cause_id = (%s) WHERE failure_id = (%s);"
                             cursor.execute(sql, (worker_id, reason_id , dialog.sboi_id))
                             connection.commit()

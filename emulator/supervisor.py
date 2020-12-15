@@ -24,10 +24,10 @@ class Supervisor():
                 break
 
             try:
-                self.switch(int(c))
+                self.switch(int(c)-1)
             except ConnectionRefusedError:
                 print("Уведомление не отправленно: не удалось \
 подключиться к серверу.")
-            except IndexError:
+            except (IndexError, ValueError):
                 print("Неопознаный символ. Введите 'q' для завершения или \
-номера от 0 до {}.".format(len(self.sensors) - 1))
+номера от 1 до {}.".format(len(self.sensors)))

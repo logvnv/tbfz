@@ -14,6 +14,6 @@ while True:
     except ValueError:
         print("Введите натуральное число число.")
 
-Sensors = [Sensor() for i in range(N_SENSORS)]
+Sensors = [Sensor() for i in range(1, N_SENSORS+1)]
 sv = Supervisor(Sensors)
 sv.start()

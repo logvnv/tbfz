@@ -23,10 +23,11 @@ class Dialog():
     """ Диалог в Телеграмме на каждый случай сбоя для каждого
     ответственного пользователя. Отслеживает этапы опроса. """
 
-    def __init__(self, tele_bot, user_id, machine_id, sboi_id):
+    def __init__(self, tele_bot, user_id, machine_id, machine_name, sboi_id):
         self.bot = tele_bot
         self.user_id = user_id
         self.machine_id = machine_id
+        self.machine_name = machine_name
         self.time = dt.now()
         self.state = 0
         self.sboi_id = sboi_id
@@ -37,10 +38,10 @@ class Dialog():
         в очереди """
         self.bot.send_message(self.user_id,
                               '❗{}ого {} в {} была зафиксирована остановка \
-станка №{}.\nЗнаете ли вы, что послужило причиной?\
+станка {}.\nЗнаете ли вы, что послужило причиной?\
 '.format(self.time.day, ru_months[self.time.month],
          self.time.strftime("%H:%M"),
-         self.machine_id),
+         self.machine_name),
                               reply_markup=json.dumps({
                                   'keyboard': [['Да'], ['Нет']],
                                   'resize_keyboard': True,

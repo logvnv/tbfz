@@ -12,7 +12,7 @@ class Sensor():
     id_iter = itertools.count()
 
     def __init__(self):
-        self.id = next(self.id_iter)
+        self.id = next(self.id_iter) + 1
         self.is_running = True
 
         sock = socket.socket()
