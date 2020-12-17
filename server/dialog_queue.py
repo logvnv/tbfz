@@ -240,7 +240,7 @@ class Queue():
             if len(sensors) > 0:
                 connection = pymysql.connect(db_config.DB_HOST, db_config.DB_USER_NAME, db_config.DB_PASSWORD, db_config.DB_NAME)
                 with connection.cursor() as cursor:
-                    sql = "SELECT * FROM machine"
+                    sql = "SELECT machine_id, machine_name FROM machine"
                     cursor.execute(sql)
                     data = cursor.fetchall()
                     machines = {machine_id: machine_name for machine_id, machine_name in data}
@@ -272,7 +272,7 @@ class Queue():
             if len(sensors) > 0:
                 connection = pymysql.connect(db_config.DB_HOST, db_config.DB_USER_NAME, db_config.DB_PASSWORD, db_config.DB_NAME)
                 with connection.cursor() as cursor:
-                    sql = "SELECT * FROM machine"
+                    sql = "SELECT machine_id, machine_name FROM machine"
                     cursor.execute(sql)
                     data = cursor.fetchall()
                     machines = {machine_id: machine_name for machine_id, machine_name in data}
