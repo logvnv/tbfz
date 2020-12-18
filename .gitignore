@@ -3,3 +3,7 @@ server/bot_config.py
 *.pyc
 *__pycache__
 env
+tests/testing_emulator/.DS_Store
+tests/testing_emulator/__pycache__
+tests/testing_server/.DS_Store
+tests/testing_server/__pycache__
